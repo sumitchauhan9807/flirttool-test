@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strapi Rich Text GraphQL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+
+        #content {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Flirttool Content</h2>
+
+<div id="content">
+    Loading...
+</div>
+
+<script>
+
+const endpoint = "https://backend.724voip.net/graphql";
+
+const query = `
+query Flirttool {
+  flirttool {
+    content
+  }
+}
+`;
+
+async function fetchFlirttool() {
+
+    const container = document.getElementById("content");
+
+    try {
+
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                query: query
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.errors) {
+            container.innerHTML = "<pre>" +
+                JSON.stringify(result.errors, null, 2) +
+                "</pre>";
+            return;
+        }
+
+        const blocks = result.data.flirttool.content;
+
+        container.innerHTML = renderStrapiRichText(blocks);
+
+    } catch (error) {
+        container.innerHTML = "Error: " + error.message;
+    }
+}
+
+
+function renderStrapiRichText(content) {
+
+    return content.map(block => {
+
+        switch(block.type) {
+
+            case "paragraph":
+                return `<p>${renderChildren(block.children)}</p>`;
+
+            case "heading":
+                return `<h${block.level}>${renderChildren(block.children)}</h${block.level}>`;
+
+            default:
+                return renderChildren(block.children);
+
+        }
+
+    }).join("");
+
+}
+
+
+function renderChildren(children) {
+
+    return children.map(child => {
+
+        let text = escapeHtml(child.text || "");
+
+        return text.replace(/\n/g, "<br>");
+
+    }).join("");
+
+}
+
+
+function escapeHtml(text) {
+
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+
+}
+
+
+// Run automatically when page loads
+fetchFlirttool();
+
+</script>
+
+</body>
+</html>
